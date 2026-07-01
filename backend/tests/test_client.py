@@ -2663,7 +2663,7 @@ class TestInstallSkillSecurity:
                 with pytest.raises(ValueError, match="Invalid skill name"):
                     client.install_skill(archive)
 
-    def test_existing_skill_rejected(self, client):
+    def test_existing_skill_rejected(self, client, allow_skill_security_scan):
         """Installing a skill that already exists is rejected."""
         with tempfile.TemporaryDirectory() as tmp:
             tmp_path = Path(tmp)
@@ -2684,6 +2684,7 @@ class TestInstallSkillSecurity:
             with (
                 patch("deerflow.skills.storage._default_skill_storage", LocalSkillStorage(host_path=str(skills_root))),
                 patch("deerflow.skills.validation._validate_skill_frontmatter", return_value=(True, "OK", "dupe-skill")),
+                patch("deerflow.client.get_or_new_user_skill_storage", return_value=LocalSkillStorage(host_path=str(skills_root))),
             ):
                 with pytest.raises(ValueError, match="already exists"):
                     client.install_skill(archive)

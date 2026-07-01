@@ -269,40 +269,40 @@ class TestPathSafety:
 class TestFactory:
     """get_or_new_user_skill_storage factory behavior."""
 
-    def test_returns_same_instance_for_same_user(self, base_dir: Path, skills_root):
+    def test_returns_same_instance_for_same_user(self, base_dir: Path, skills_root, config):
         with patch("deerflow.config.paths.get_paths", return_value=Paths(base_dir=base_dir)):
             with patch("deerflow.config.paths._paths", None):
                 from deerflow.skills.storage import get_or_new_user_skill_storage
 
-                s1 = get_or_new_user_skill_storage("alice")
-                s2 = get_or_new_user_skill_storage("alice")
+                s1 = get_or_new_user_skill_storage("alice", app_config=config)
+                s2 = get_or_new_user_skill_storage("alice", app_config=config)
                 assert s1 is s2
 
-    def test_returns_different_instance_for_different_user(self, base_dir: Path, skills_root):
+    def test_returns_different_instance_for_different_user(self, base_dir: Path, skills_root, config):
         with patch("deerflow.config.paths.get_paths", return_value=Paths(base_dir=base_dir)):
             with patch("deerflow.config.paths._paths", None):
                 from deerflow.skills.storage import get_or_new_user_skill_storage
 
-                s1 = get_or_new_user_skill_storage("alice")
-                s2 = get_or_new_user_skill_storage("bob")
+                s1 = get_or_new_user_skill_storage("alice", app_config=config)
+                s2 = get_or_new_user_skill_storage("bob", app_config=config)
                 assert s1 is not s2
 
-    def test_reset_clears_specific_user(self, base_dir: Path, skills_root):
+    def test_reset_clears_specific_user(self, base_dir: Path, skills_root, config):
         with patch("deerflow.config.paths.get_paths", return_value=Paths(base_dir=base_dir)):
             with patch("deerflow.config.paths._paths", None):
                 from deerflow.skills.storage import get_or_new_user_skill_storage
 
-                s_alice = get_or_new_user_skill_storage("alice")
-                s_bob = get_or_new_user_skill_storage("bob")
+                s_alice = get_or_new_user_skill_storage("alice", app_config=config)
+                s_bob = get_or_new_user_skill_storage("bob", app_config=config)
 
                 reset_user_skill_storage("alice")
 
                 # Alice's storage is gone; a new one is created
-                s_alice_new = get_or_new_user_skill_storage("alice")
+                s_alice_new = get_or_new_user_skill_storage("alice", app_config=config)
                 assert s_alice_new is not s_alice
 
                 # Bob's storage is still cached
-                s_bob_cached = get_or_new_user_skill_storage("bob")
+                s_bob_cached = get_or_new_user_skill_storage("bob", app_config=config)
                 assert s_bob_cached is s_bob
 
 

@@ -25,9 +25,26 @@ def _make_skill(name: str, allowed_tools: list[str] | None = None) -> Skill:
     )
 
 
+def _mock_skill_storages(monkeypatch, skills):
+    """Patch storage factories and config so get_skills_prompt_section works without config.yaml."""
+    from types import SimpleNamespace
+
+    mock_storage = SimpleNamespace(load_skills=lambda *, enabled_only: skills)
+    monkeypatch.setattr("deerflow.agents.lead_agent.prompt.get_or_new_skill_storage", lambda **kwargs: mock_storage)
+    monkeypatch.setattr("deerflow.agents.lead_agent.prompt.get_or_new_user_skill_storage", lambda user_id, **kwargs: mock_storage)
+    monkeypatch.setattr(
+        "deerflow.config.get_app_config",
+        lambda: SimpleNamespace(
+            skills=SimpleNamespace(container_path="/mnt/skills", use="deerflow.skills.storage.local_skill_storage:LocalSkillStorage", get_skills_path=lambda: Path("/tmp/skills")),
+            skill_evolution=SimpleNamespace(enabled=False),
+        ),
+    )
+
+
 def test_get_skills_prompt_section_returns_empty_when_no_skills_match(monkeypatch):
     skills = [_make_skill("skill1"), _make_skill("skill2")]
     monkeypatch.setattr("deerflow.agents.lead_agent.prompt._get_enabled_skills", lambda: skills)
+    _mock_skill_storages(monkeypatch, skills)
 
     result = get_skills_prompt_section(available_skills={"non_existent_skill"})
     assert result == ""
@@ -36,6 +53,7 @@ def test_get_skills_prompt_section_returns_empty_when_no_skills_match(monkeypatc
 def test_get_skills_prompt_section_returns_empty_when_available_skills_empty(monkeypatch):
     skills = [_make_skill("skill1"), _make_skill("skill2")]
     monkeypatch.setattr("deerflow.agents.lead_agent.prompt._get_enabled_skills", lambda: skills)
+    _mock_skill_storages(monkeypatch, skills)
 
     result = get_skills_prompt_section(available_skills=set())
     assert result == ""
@@ -44,6 +62,7 @@ def test_get_skills_prompt_section_returns_empty_when_available_skills_empty(mon
 def test_get_skills_prompt_section_returns_skills(monkeypatch):
     skills = [_make_skill("skill1"), _make_skill("skill2")]
     monkeypatch.setattr("deerflow.agents.lead_agent.prompt._get_enabled_skills", lambda: skills)
+    _mock_skill_storages(monkeypatch, skills)
 
     result = get_skills_prompt_section(available_skills={"skill1"})
     assert "skill1" in result
@@ -54,6 +73,7 @@ def test_get_skills_prompt_section_returns_skills(monkeypatch):
 def test_get_skills_prompt_section_returns_all_when_available_skills_is_none(monkeypatch):
     skills = [_make_skill("skill1"), _make_skill("skill2")]
     monkeypatch.setattr("deerflow.agents.lead_agent.prompt._get_enabled_skills", lambda: skills)
+    _mock_skill_storages(monkeypatch, skills)
 
     result = get_skills_prompt_section(available_skills=None)
     assert "skill1" in result
@@ -63,6 +83,7 @@ def test_get_skills_prompt_section_returns_all_when_available_skills_is_none(mon
 def test_get_skills_prompt_section_includes_slash_activation_guidance(monkeypatch):
     skills = [_make_skill("data-analysis")]
     monkeypatch.setattr("deerflow.agents.lead_agent.prompt._get_enabled_skills", lambda: skills)
+    _mock_skill_storages(monkeypatch, skills)
 
     result = get_skills_prompt_section(available_skills={"data-analysis"})
 
